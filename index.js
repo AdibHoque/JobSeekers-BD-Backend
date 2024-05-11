@@ -36,6 +36,12 @@ async function run() {
     const jobCollection = client.db('JobSeekers').collection('jobs');
 
     app.get("/jobs", async (req, res) => {
+      const query = req.query.id
+      if (query) {
+        const q = { _id: new ObjectId(query) }
+        const result = await jobCollection.findOne(q);
+        return res.send(result);
+      }
       const cursor = jobCollection.find();
       const result = await cursor.toArray();
       res.send(result);
