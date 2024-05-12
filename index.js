@@ -37,18 +37,21 @@ async function run() {
 
     app.get("/jobs", async (req, res) => {
       const idQuery = req.query.id
-      const emailQuery = req.query.id
+      const emailQuery = req.query.email
+
+      if (emailQuery) {
+        const q = { email: emailQuery }
+        const cursor = await jobCollection.find(q);
+        const result = await cursor.toArray();
+        return res.send(result);
+      }
 
       if (idQuery) {
         const q = { _id: new ObjectId(idQuery) }
         const result = await jobCollection.findOne(q);
         return res.send(result);
       }
-      if (emailQuery) {
-        const q = { email: new ObjectId(emailQuery) }
-        const result = await jobCollection.findOne(q);
-        return res.send(result);
-      }
+
       const cursor = jobCollection.find();
       const result = await cursor.toArray();
       res.send(result);
