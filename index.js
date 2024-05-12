@@ -62,10 +62,35 @@ async function run() {
       const result = await jobCollection.insertOne(newJob);
       res.send(result);
     })
+
     app.delete('/jobs', async (req, res) => {
       const id = req.query.id;
       const query = { _id: new ObjectId(id) }
       const result = await jobCollection.deleteOne(query);
+      res.send(result);
+    })
+
+    app.put('/jobs/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) }
+      const updatedJob = req.body;
+
+      const job = {
+        $set: {
+          category: updatedJob.category,
+          name: updatedJob.name,
+          email: updatedJob.email,
+          job_title: updatedJob.job_title,
+          job_posting_date: updatedJob.job_posting_date,
+          application_deadline: updatedJob.application_deadline,
+          salary_range: updatedJob.salary_range,
+          job_applicants_number: updatedJob.job_applicants_number,
+          image: updatedJob.image,
+          job_description: updatedJob.job_description,
+        }
+      }
+
+      const result = await jobCollection.updateOne(query, job);
       res.send(result);
     })
     // Send a ping to confirm a successful connection
