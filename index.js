@@ -36,9 +36,16 @@ async function run() {
     const jobCollection = client.db('JobSeekers').collection('jobs');
 
     app.get("/jobs", async (req, res) => {
-      const query = req.query.id
-      if (query) {
-        const q = { _id: new ObjectId(query) }
+      const idQuery = req.query.id
+      const emailQuery = req.query.id
+
+      if (idQuery) {
+        const q = { _id: new ObjectId(idQuery) }
+        const result = await jobCollection.findOne(q);
+        return res.send(result);
+      }
+      if (emailQuery) {
+        const q = { email: new ObjectId(emailQuery) }
         const result = await jobCollection.findOne(q);
         return res.send(result);
       }
