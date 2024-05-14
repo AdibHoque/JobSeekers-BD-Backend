@@ -3,9 +3,37 @@ const express = require('express');
 const cors = require('cors');
 const app = express()
 const port = process.env.PORT || 5000
+const jwt = require('jsonwebtoken');
 
-app.use(cors())
+const cookieParser = require('cookie-parser');
+app.use(cors({
+  origin: [
+    'http://localhost:5173',
+    'https://jobseekers-bd.web.app',
+    'https://jobseekers-bd.firebaseapp.com'
+  ],
+  credentials: true
+}))
 app.use(express.json())
+app.use(cookieParser());
+
+const logger = (req, res, next) => {
+  console.log('logging info', req.method, req.url);
+  next();
+}
+const verifyToken = (req, res, next) => {
+  const token = req?.cookies?.token;
+  if (!token) {
+    return res.status(401).send({ message: 'Unauthorized Access' })
+  }
+  jwt.verify(token, process.env.SECRET, (err, decoded) => {
+    if (err) {
+      return res.status(401).send({ message: 'Unauthorized Access' })
+    }
+    req.user = decoded;
+    next();
+  })
+}
 
 app.get("/", (req, res) => {
   res.send("API server is running for JobSeekers!")
@@ -36,7 +64,25 @@ async function run() {
     const jobCollection = client.db('JobSeekers').collection('jobs');
     const appliedJobCollection = client.db('JobSeekers').collection('appliedJobs');
 
-    app.get("/jobs", async (req, res) => {
+    app.post('/jwt', logger, async (req, res) => {
+      const user = req.body;
+
+      const token = jwt.sign(user, process.env.SECRET, { expiresIn: '1h' });
+
+      res.cookie('token', token, {
+        httpOnly: true,
+        secure: false,
+        sameSite: 'none'
+      })
+        .send({ success: true });
+    })
+
+    app.post('/logout', async (req, res) => {
+      console.log("Logout")
+      res.clearCookie('token', { maxAge: 0 }).send({ success: true })
+    })
+
+    app.get("/jobs", verifyToken, async (req, res) => {
       const idQuery = req.query.id
       const emailQuery = req.query.email
 
@@ -58,20 +104,20 @@ async function run() {
       res.send(result);
     })
 
-    app.post('/jobs', async (req, res) => {
+    app.post('/jobs', verifyToken, async (req, res) => {
       const newJob = req.body;
       const result = await jobCollection.insertOne(newJob);
       res.send(result);
     })
 
-    app.delete('/jobs', async (req, res) => {
+    app.delete('/jobs', verifyToken, async (req, res) => {
       const id = req.query.id;
       const query = { _id: new ObjectId(id) }
       const result = await jobCollection.deleteOne(query);
       res.send(result);
     })
 
-    app.put('/jobs/:id', async (req, res) => {
+    app.put('/jobs/:id', verifyToken, async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) }
       const updatedJob = req.body;
@@ -95,7 +141,7 @@ async function run() {
       res.send(result);
     })
 
-    app.get("/appliedjobs", async (req, res) => {
+    app.get("/appliedjobs", verifyToken, async (req, res) => {
       const idQuery = req.query.id
       const emailQuery = req.query.email
 
@@ -117,7 +163,7 @@ async function run() {
       res.send(result);
     })
 
-    app.post('/appliedjobs/:id', async (req, res) => {
+    app.post('/appliedjobs/:id', verifyToken, async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) }
       const update = {
