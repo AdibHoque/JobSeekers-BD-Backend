@@ -34,6 +34,7 @@ async function run() {
     await client.connect();
 
     const jobCollection = client.db('JobSeekers').collection('jobs');
+    const appliedJobCollection = client.db('JobSeekers').collection('appliedJobs');
 
     app.get("/jobs", async (req, res) => {
       const idQuery = req.query.id
@@ -91,6 +92,43 @@ async function run() {
       }
 
       const result = await jobCollection.updateOne(query, job);
+      res.send(result);
+    })
+
+    app.get("/appliedjobs", async (req, res) => {
+      const idQuery = req.query.id
+      const emailQuery = req.query.email
+
+      if (emailQuery) {
+        const q = { email: emailQuery }
+        const cursor = await appliedJobCollection.find(q);
+        const result = await cursor.toArray();
+        return res.send(result);
+      }
+
+      if (idQuery) {
+        const q = { _id: new ObjectId(idQuery) }
+        const result = await appliedJobCollection.findOne(q);
+        return res.send(result);
+      }
+
+      const cursor = appliedJobCollection.find();
+      const result = await cursor.toArray();
+      res.send(result);
+    })
+
+    app.post('/appliedjobs/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) }
+      const update = {
+        $inc: {
+          job_applicants_number: 1
+        }
+      }
+      const newJob = req.body;
+      const result = await appliedJobCollection.insertOne(newJob);
+      const result2 = await jobCollection.updateOne(query, update);
+
       res.send(result);
     })
     // Send a ping to confirm a successful connection
