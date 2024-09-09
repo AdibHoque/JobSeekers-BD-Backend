@@ -85,7 +85,7 @@ async function run() {
       res.clearCookie('token', { maxAge: 0 }).send({ success: true })
     })
 
-    app.get("/jobs", verifyToken, async (req, res) => {
+    app.get("/jobs", async (req, res) => {
       const idQuery = req.query.id
       const emailQuery = req.query.email
 
